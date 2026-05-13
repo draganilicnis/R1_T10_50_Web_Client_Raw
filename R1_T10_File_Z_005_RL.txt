@@ -1,0 +1,113 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+class Program
+{
+    static string putanja_Ocene = "ocena.csv";          // @"D:\Folder\Podfolder\Ocene.csv";
+    static string putanja_Predmet = "predmet.csv";
+    static string putanja_Ucenik = "ucenik.csv";
+
+    static string PREDMET = "Математика";
+    static void Main()
+    {
+        if (!File.Exists(putanja_Ocene)) Console.WriteLine("Ne postoji datoteka: " + putanja_Ocene);
+        else if (!File.Exists(putanja_Predmet)) Console.WriteLine("Ne postoji datoteka: " + putanja_Predmet);
+        else if (!File.Exists(putanja_Ucenik)) Console.WriteLine("Ne postoji datoteka: " + putanja_Ucenik);
+        else
+            Obrada();
+    }
+    struct Ucenik
+    {
+        public int id;          // Nije potrebno, jer su podaci u datoteci ucenici, vec sortirani po id.
+        public string prezime_ime;
+        public int n;           // Broj ocena
+        public int s;           // Zbir ocena
+        public int Prosek100;   // Prosecna ocena zaokruzena na 2 decimale, pa pomnozena sa 100
+    };
+
+    static void Ispisi(List<Ucenik> a, int n)
+    {
+        Console.OutputEncoding = System.Text.Encoding.Unicode;          // zbog cirilice
+        for (int i = 0; i < n; i++)
+            Console.WriteLine(a[i].prezime_ime + " " + a[i].Prosek100);
+    }
+    static int uporedi(Ucenik A, Ucenik B)                     // https://petlja.org/sr-Latn-RS/kurs/18425/2/3505
+    {
+        if (A.Prosek100 > B.Prosek100) return -1;
+        if (A.Prosek100 < B.Prosek100) return 1;
+        return String.Compare(A.prezime_ime, B.prezime_ime);
+    }
+    static void Obrada()
+    {
+        List<Ucenik> a = Ucitaj_ocene_i_azuriraj_podatke_o_ucenicima();
+        a.Sort(uporedi);
+        int n = int.Parse(Console.ReadLine());
+        Ispisi(a, n);
+    }
+
+    static List<Ucenik> Ucitaj_ocene_i_azuriraj_podatke_o_ucenicima()
+    {
+        int ID_Predmet = Pronadji_ID_za_Predmet(PREDMET);
+        // Console.WriteLine(ID_Predmet);
+        List<Ucenik> a = Ucitaj_podatke_o_ucenicima();
+        StreamReader f = new StreamReader(putanja_Ocene);
+        string sRed = f.ReadLine();
+        if (sRed != null) sRed = f.ReadLine();  // Zbog zaglavlja (header)
+        while (sRed != null)
+        {
+            string[] sLin = sRed.Split(',');
+            int id_predmet = int.Parse(sLin[1]);
+            int id_ucenik = int.Parse(sLin[2]);
+            int ocena = int.Parse(sLin[3]);
+            if (id_predmet == ID_Predmet)
+            {
+                Ucenik ucenik = a[id_ucenik - 1];
+                ucenik.n++;
+                ucenik.s = ucenik.s + ocena;
+                ucenik.Prosek100 = 100 * ucenik.s / ucenik.n;  // Proveriti i eventualno korigovati
+                a[id_ucenik - 1] = ucenik;
+            }
+            sRed = f.ReadLine();
+        }
+        f.Close();
+        return a;
+    }
+    static List<Ucenik> Ucitaj_podatke_o_ucenicima()
+    {
+        List<Ucenik> a = new List<Ucenik>();
+        StreamReader f = new StreamReader(putanja_Ucenik);
+        string sRed = f.ReadLine();
+        if (sRed != null) sRed = f.ReadLine();  // Zbog zaglavlja (header)
+        while (sRed != null)
+        {
+            string[] sLin = sRed.Split(',');
+            Ucenik ucenik;
+            ucenik.id = int.Parse(sLin[0]);
+            ucenik.prezime_ime = sLin[1] + " " + sLin[2];
+            ucenik.n = 0;
+            ucenik.s = 0;
+            ucenik.Prosek100 = -1;
+            a.Add(ucenik);
+            sRed = f.ReadLine();
+        }
+        f.Close();
+        return a;
+    }
+    static int Pronadji_ID_za_Predmet(string predmet_naziv)
+    {
+        int ID = -1;
+        StreamReader f = new StreamReader(putanja_Predmet);
+        string sRed = f.ReadLine();
+        if (sRed != null) sRed = f.ReadLine();  // Zbog zaglavlja (header)
+        while (sRed != null && ID < 0)
+        {
+            string[] sLin = sRed.Split(',');
+            int id = int.Parse(sLin[0]);
+            int r = int.Parse(sLin[2]);
+            string naziv = sLin[1];
+            if (r == 2 && naziv == predmet_naziv) ID = id;
+            sRed = f.ReadLine();
+        }
+        return ID;
+    }
+}
